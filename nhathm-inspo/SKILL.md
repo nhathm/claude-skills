@@ -1,36 +1,40 @@
 ---
 name: nhathm-inspo
-description: Capture a social-media screenshot (skill, project, tool, design idea) into Rio's Obsidian Inspiration vault right now — hash, dedupe, analyse, light research, write a note. Use when Rio sends an image with "/nhathm-inspo" or "/nhathm-inspo ngay", or asks to save an inspiration image immediately.
+description: Analyse and save a social-media screenshot (skill, project, tool, design idea) Rio sends into a thread — hash, dedupe, discuss with Rio, light research, save a note to his Obsidian vault via GitHub claude-vault. Use whenever Rio sends an inspiration image, in the Inspiration project, or with /nhathm-inspo.
 ---
 
-# nhathm-inspo — xử lý ngay 1 ảnh
+# nhathm-inspo — phân tích & lưu 1 ảnh inspiration
 
-Rio lướt social, thấy ảnh hay, muốn lưu ngay thay vì chờ batch đêm. Trả lời bằng tiếng Việt, ngắn.
+Rio lướt social, gửi ảnh vào thread kèm (hoặc không) một câu của mình. Giá trị nằm ở **phân tích + ngữ cảnh của Rio**, không phải bản thân tấm ảnh. Trả lời tiếng Việt, ngắn, có chính kiến.
 
-## Vị trí
-| | Cowork (Mac liên kết) | Claude Code trên Mac |
-|---|---|---|
-| Vault | `$HOME/mnt/NhatHM and Claude` | `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/NhatHM and Claude` |
-| Script | `$HOME/mnt/ClaudeProjects/claude-skills/nhathm-inspo/scripts/inspo_scan.py` | `~/Documents/Claude Code learning/ClaudeProjects/claude-skills/nhathm-inspo/scripts/inspo_scan.py` |
-| Git (`GIT`) | `git -C "$HOME/mnt/NhatHM and Claude"` | `git -C "<vault>"` |
+## Nơi lưu: GitHub là nguồn ghi duy nhất
+Mọi ghi của Claude đi vào repo private `nhathm/claude-vault` (Obsidian vault). Obsidian Git trên Mac tự pull về, iCloud đưa sang iPhone. **Không ghi trực tiếp vào vault trên Mac** — tránh xung đột với Obsidian Git.
 
-`INS=<vault>/Inspiration`. Git dir nằm trong vault ở `.git.nosync/` (iCloud bỏ qua). Nếu vault chưa được kết nối, nhờ Rio "Add folder" (hoặc request folder access) rồi mới làm tiếp. Quy ước đầy đủ: `INS/README.md`.
+Setup (một lần mỗi thread):
+1. `add_repo` (access: push) cho `nhathm/claude-vault` và `nhathm/claude-skills`, rồi clone theo hướng dẫn của tool (vd `/home/claude/claude-vault`, `/home/claude/claude-skills`).
+2. `pip install --break-system-packages -q imagehash pillow` nếu thiếu.
+3. `INS=/home/claude/claude-vault/Inspiration`, `SCAN=/home/claude/claude-skills/nhathm-inspo/scripts/inspo_scan.py`.
+Quy ước vault: `INS/README.md`.
 
 ## Quy trình
-1. **Đưa ảnh vào vault**: copy ảnh Rio gửi vào `INS/_inbox/` (chat attachment → device_commit_files).
-2. **Hash + dedupe (không tốn token)**: `python3 <script> "$INS"` → JSON. Nếu thiếu thư viện: `pip install --user imagehash pillow`.
-   - `duplicate.reason = sha256|phash` → **không tạo note mới**. Báo Rio "đã lưu: <id> <title> (status)", xoá ảnh khỏi `_inbox`. Nếu note cũ đang `archived`, hỏi có muốn mở lại không.
-3. **Nhìn ảnh đúng 1 lần**, rút ra: nó là gì, tác giả/nguồn (watermark, handle), type, chủ đề.
-4. **Dedupe ngữ nghĩa** (rẻ): `grep -ril "<2-3 keyword>" "$INS/notes" "$INS/_archive"` chỉ đọc frontmatter `title`. Nếu cùng ý tưởng từ nguồn khác → vẫn tạo note nhưng điền `duplicate_of: "[[INS-xxxx ...]]"` và nói Rio.
-5. **Research nhẹ**: tối đa 3–5 web search — tìm repo/tool/post gốc, tính khả thi, thứ tương đương. Không fetch trang dài nếu không cần.
-6. **Liên kết với việc của Rio**: điền `related` bằng wikilink tới project/skill liên quan (vd `[[video-studio]]`). Chỉ điền khi thật sự liên quan.
-7. **Ghi note** `INS/notes/<new_id> <tên ngắn 2-4 từ>.md`, chuyển ảnh sang `INS/attachments/<new_id>.<ext>`. Template:
+1. **Hash + dedupe trước khi nhìn kỹ (0 token)**: copy ảnh Rio gửi ra file, `python3 -I $SCAN "$INS" --file <ảnh>` → JSON.
+   - `duplicate` có giá trị → báo "đã lưu: <id> <title> (<status>)", hỏi Rio có muốn bổ sung ghi chú/mở lại không. **Dừng**, không tạo note mới.
+   - Không trùng → lấy `new_id`.
+2. **Lưu tạm ngay** (để không mất nếu Rio bỏ dở): ảnh → `INS/attachments/<id>.<ext>`, note `INS/notes/<id> capture.md` với `status: raw`, hash, `captured`, mục `## Rio note` chép nguyên câu Rio gửi (nếu có). Commit + push: `inspo: <id> raw`.
+3. **Nhìn ảnh đúng 1 lần**: nó là gì, nguồn/tác giả (watermark, handle), type, chủ đề.
+4. **Dedupe ngữ nghĩa**: `grep -ril "<2-3 keyword>" "$INS/notes" "$INS/_archive"` (chỉ xem `title`). Cùng ý tưởng nguồn khác → `duplicate_of: "[[...]]"`, nói Rio.
+5. **Research nhẹ**: tối đa 3–5 web search — repo/tool/post gốc, khả thi, thứ tương đương.
+6. **Trả lời Rio**: 3–6 dòng — nó là gì, có đáng không, áp dụng vào đâu (project/skill của Rio), next action. Trả lời thẳng câu hỏi Rio đặt ra. Nếu Rio muốn trao đổi tiếp, cứ trao đổi.
+7. **Chốt note** (khi Rio nói "lưu"/"ok", hoặc cuối lượt trả lời nếu Rio không phản đối): điền đủ template, `status: inbox`, đổi tên file thành `<id> <tên ngắn 2-4 từ>.md`, ghi kết luận cuộc trao đổi vào `## Rio note`. Commit + push: `inspo: <id> <title>`.
 
+Git: `git -C /home/claude/claude-vault pull --rebase -q origin main` trước mỗi commit; sau commit `push origin main`. Push bị từ chối → pull --rebase rồi push lại 1 lần.
+
+## Template
 ```markdown
 ---
 id: INS-0003
 title: "<tiêu đề rõ nghĩa>"
-status: inbox
+status: inbox            # raw khi mới lưu tạm
 type: skill|project|tool|design-pattern|idea
 source: <url hoặc trống>
 author: <tác giả/nguồn>
@@ -46,6 +50,9 @@ duplicate_of:
 ---
 ![[INS-0003.jpeg|400]]
 
+## Rio note
+Câu Rio gửi kèm + kết luận sau trao đổi.
+
 ## Summary
 2–3 câu: là gì, dùng khi nào.
 
@@ -55,10 +62,8 @@ duplicate_of:
 ## Next action
 - [ ] việc cụ thể, làm được
 ```
-8. **Git** (nếu vault có git): `$GIT add -A && $GIT commit -m "inspo: <id> <title>"`. Không push — Obsidian Git trên Mac lo việc push.
-9. Trả lời Rio 2–3 dòng: id, title, next action, link note.
 
 ## Quy tắc token
-- Ảnh chỉ nhìn 1 lần; mọi so sánh sau đó dùng hash/frontmatter.
-- Không đọc lại note cũ ngoài frontmatter. Không lưu nội dung inspiration vào memory của Claude.
-- Quá 10 ảnh trong 1 lần → khuyên Rio thả vào `_inbox` để batch xử lý.
+- Ảnh chỉ nhìn 1 lần; so sánh sau đó dùng hash/frontmatter. Không mở note cũ ngoài frontmatter.
+- Không lưu nội dung inspiration vào memory của Claude — vault là nguồn sự thật.
+- Mỗi ảnh nên một thread mới. Quá 5 ảnh một lần → xử lý tuần tự, mỗi ảnh một commit.

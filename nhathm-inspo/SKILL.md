@@ -12,9 +12,9 @@ Rio lướt social, thấy ảnh hay, muốn lưu ngay thay vì chờ batch đê
 |---|---|---|
 | Vault | `$HOME/mnt/NhatHM and Claude` | `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/NhatHM and Claude` |
 | Script | `$HOME/mnt/ClaudeProjects/claude-skills/nhathm-inspo/scripts/inspo_scan.py` | `~/Documents/Claude Code learning/ClaudeProjects/claude-skills/nhathm-inspo/scripts/inspo_scan.py` |
-| Git (`GIT`) | `git --git-dir="$HOME/mnt/ClaudeProjects/.git-dirs/claude-vault" --work-tree="$HOME/mnt/NhatHM and Claude"` | `git -C "<vault>"` |
+| Git (`GIT`) | `git -C "$HOME/mnt/NhatHM and Claude"` | `git -C "<vault>"` |
 
-`INS=<vault>/Inspiration`. File `.git` trong vault trỏ tới đường dẫn Mac, nên trong Cowork phải dùng dạng `--git-dir/--work-tree` ở trên (cần kết nối cả folder `ClaudeProjects`). Nếu vault chưa được kết nối, nhờ Rio "Add folder" (hoặc request folder access) rồi mới làm tiếp. Quy ước đầy đủ: `INS/README.md`.
+`INS=<vault>/Inspiration`. Git dir nằm trong vault ở `.git.nosync/` (iCloud bỏ qua). Nếu vault chưa được kết nối, nhờ Rio "Add folder" (hoặc request folder access) rồi mới làm tiếp. Quy ước đầy đủ: `INS/README.md`.
 
 ## Quy trình
 1. **Đưa ảnh vào vault**: copy ảnh Rio gửi vào `INS/_inbox/` (chat attachment → device_commit_files).

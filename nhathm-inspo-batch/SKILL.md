@@ -14,5 +14,5 @@ Chạy không có người xem. Không hỏi lại; quyết định hợp lý v�
    - `duplicate` có giá trị → xoá ảnh khỏi `_inbox`, ghi vào log "bỏ qua: trùng <id>".
    - Ngược lại làm bước 3–7 của `nhathm-inspo`. Nếu có `sidecar` (.md/.txt cùng tên) → đọc lấy URL/ghi chú làm `source`, rồi xoá sidecar.
    - Nếu không xử lý được (ảnh lỗi, không hiểu) → tạo note `status: raw`, summary ghi lý do, chuyển ảnh vào attachments như thường.
-4. Commit 1 lần: `git -C "<vault>" add -A && git commit -m "inspo batch YYYY-MM-DD: N mới, M trùng"`.
+4. Commit 1 lần: `$GIT add -A && $GIT commit -m "inspo batch YYYY-MM-DD: N mới, M trùng"`.
 5. Kết quả ngắn: số mới / trùng / lỗi + danh sách id–title. **Chỉ gửi push khi có ≥1 note mới**, nội dung 1 dòng: "Inspo: đã xử lý N ảnh mới — <title nổi bật nhất>".

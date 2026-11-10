@@ -13,7 +13,9 @@ Rio lướt social, thấy ảnh hay, muốn lưu ngay thay vì chờ batch đê
 | Vault | `$HOME/mnt/NhatHM and Claude` | `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/NhatHM and Claude` |
 | Script | `$HOME/mnt/ClaudeProjects/claude-skills/nhathm-inspo/scripts/inspo_scan.py` | `~/Documents/Claude Code learning/ClaudeProjects/claude-skills/nhathm-inspo/scripts/inspo_scan.py` |
 
-`INS=<vault>/Inspiration`. Nếu vault chưa được kết nối, nhờ Rio "Add folder" (hoặc request folder access) rồi mới làm tiếp. Quy ước đầy đủ: `INS/README.md`.
+| Git (`GIT`) | `git --git-dir="$HOME/mnt/ClaudeProjects/.git-dirs/claude-vault" --work-tree="$HOME/mnt/NhatHM and Claude"` | `git -C "<vault>"` |
+
+`INS=<vault>/Inspiration`. File `.git` trong vault trỏ tới đường dẫn Mac, nên trong Cowork phải dùng dạng `--git-dir/--work-tree` ở trên (cần kết nối cả folder `ClaudeProjects`). Nếu vault chưa được kết nối, nhờ Rio "Add folder" (hoặc request folder access) rồi mới làm tiếp. Quy ước đầy đủ: `INS/README.md`.
 
 ## Quy trình
 1. **Đưa ảnh vào vault**: copy ảnh Rio gửi vào `INS/_inbox/` (chat attachment → device_commit_files).
@@ -54,7 +56,7 @@ duplicate_of:
 ## Next action
 - [ ] việc cụ thể, làm được
 ```
-8. **Git** (nếu vault có git): `git -C "<vault>" add -A && git commit -m "inspo: <id> <title>"`. Không push — Obsidian Git trên Mac lo việc push.
+8. **Git** (nếu vault có git): `$GIT add -A && $GIT commit -m "inspo: <id> <title>"`. Không push — Obsidian Git trên Mac lo việc push.
 9. Trả lời Rio 2–3 dòng: id, title, next action, link note.
 
 ## Quy tắc token

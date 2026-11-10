@@ -18,5 +18,5 @@ description: Weekly digest and cleanup of Rio's Obsidian Inspiration vault — s
    - **3 việc đáng thử nhất**: ưu tiên `related` tới project Rio đang làm, effort thấp, review đã đến hạn. Mỗi việc 1 dòng: vì sao + next action.
    - Đến hạn review chưa đụng tới.
    - Cleanup đã làm.
-5. Commit: `inspo digest YYYY-MM-DD`.
+5. Commit bằng `$GIT` (xem skill `nhathm-inspo`): `inspo digest YYYY-MM-DD`.
 6. Push notification 1–2 dòng: "Inspo tuần này: N mới. Thử: <việc #1>". Luôn gửi (kể cả tuần trống: "Tuần này chưa có gì mới").

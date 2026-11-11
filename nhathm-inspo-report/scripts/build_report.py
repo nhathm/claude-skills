@@ -95,6 +95,18 @@ def md_block(s):
     return "".join(out)
 
 
+def load_categories(ins):
+    """Read the slug -> name table from Inspiration/categories.md (order kept)."""
+    cats = {}
+    p = f"{ins}/categories.md"
+    if os.path.exists(p):
+        for line in open(p, encoding="utf-8"):
+            m = re.match(r"\|\s*([a-z0-9-]+)\s*\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|", line)
+            if m and m.group(1) != "slug" and re.search(r"[a-z]", m.group(1)):
+                cats[m.group(1)] = {"name": m.group(2), "desc": m.group(3)}
+    return cats
+
+
 def build(ins):
     items = []
     for p in sorted(glob.glob(f"{ins}/notes/*.md")):
@@ -109,6 +121,7 @@ def build(ins):
             "effort": fm.get("effort", ""), "review": fm.get("review", ""),
             "captured": fm.get("captured", ""), "author": fm.get("author", ""),
             "source": fm.get("source", ""), "tags": fm.get("tags") or [],
+            "category": (fm.get("category") if isinstance(fm.get("category"), list) else [fm["category"]] if fm.get("category") else ["khac"]),
             "dup": re.sub(r"[\[\]\"]", "", fm.get("duplicate_of", "") or ""),
             "thumb": thumb(f"{ins}/attachments/{img}") if img else "",
             "more": max(0, len([e for e in embeds if re.search(r'\.(jpe?g|png|webp)$', e, re.I)]) - 1),
@@ -170,6 +183,7 @@ input[type=search]{flex:1 1 220px;min-width:0}
 .pill{font-size:11.5px;border-radius:999px;padding:1px 8px;background:var(--accent-soft);color:var(--accent)}
 .pill.st-raw,.pill.st-archived{background:var(--line);color:var(--muted)}
 .pill.st-to-try{background:var(--warn-soft);color:var(--warn)}
+.cats{display:flex;gap:4px;flex-wrap:wrap}.cat{font-size:11.5px;border:1px solid var(--line);border-radius:4px;padding:0 6px;color:var(--ink)}
 .pill.dup{background:var(--line);color:var(--muted)}
 .duefl{color:var(--warn);font-weight:600}
 .empty{padding:48px 0;text-align:center;color:var(--muted)}
@@ -206,6 +220,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px}
         <option value="new">Mới nhất</option><option value="review">Review sớm nhất</option><option value="id">Theo ID</option>
       </select>
     </div>
+    <div class="row" id="f-category"><span class="lbl">Category</span></div>
     <div class="row" id="f-topic"><span class="lbl">Chủ đề</span></div>
     <div class="row" id="f-type"><span class="lbl">Loại</span></div>
     <div class="row" id="f-status"><span class="lbl">Trạng thái</span></div>
@@ -226,22 +241,24 @@ const L={topic:{"ai-agent":"AI agent","personal-ai":"AI cá nhân","claude-skill
  type:{skill:"Skill",project:"Project",tool:"Tool","design-pattern":"Design pattern",idea:"Ý tưởng",setup:"Setup"},
  status:{raw:"Raw",inbox:"Inbox","to-try":"Sẽ thử",tried:"Đã thử",archived:"Lưu trữ"},
  effort:{"15-phut":"15 phút","1-buoi":"1 buổi","1-tuan":"1 tuần"}};
+L.category=Object.fromEntries(Object.entries(D.categories||{}).map(([k,v])=>[k,v.name]));
 const lab=(g,v)=>(L[g]&&L[g][v])||v||'—';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const isDue=it=>it.review&&it.review<=today&&!['archived','tried'].includes(it.status);
-const sel={topic:new Set(),type:new Set(),status:new Set()};
+const sel={category:new Set(),topic:new Set(),type:new Set(),status:new Set()};
 let st={};try{st=JSON.parse(localStorage.getItem('inspo-filters')||'{}')}catch(e){}
 for(const g in sel)(st[g]||[]).forEach(v=>sel[g].add(v));
 const qEl=document.getElementById('q'),sortEl=document.getElementById('sort');
 if(st.sort)sortEl.value=st.sort;
-function save(){try{localStorage.setItem('inspo-filters',JSON.stringify({topic:[...sel.topic],type:[...sel.type],status:[...sel.status],sort:sortEl.value}))}catch(e){}}
+function save(){try{localStorage.setItem('inspo-filters',JSON.stringify({category:[...sel.category],topic:[...sel.topic],type:[...sel.type],status:[...sel.status],sort:sortEl.value}))}catch(e){}}
 
 function chips(g){
   const box=document.getElementById('f-'+g), counts={};
-  items.forEach(it=>{counts[it[g]]=(counts[it[g]]||0)+1});
-  Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).forEach(v=>{
+  items.forEach(it=>[].concat(it[g]).forEach(v=>{counts[v]=(counts[v]||0)+1}));
+  const keys=g==='category'?[...new Set([...Object.keys(L.category),...Object.keys(counts)])]:Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+  keys.forEach(v=>{
     const b=document.createElement('button');b.className='chip';b.type='button';b.id=`chip-${g}-${v}`;
-    b.textContent=`${lab(g,v)} · ${counts[v]}`;b.setAttribute('aria-pressed',sel[g].has(v));
+    b.textContent=`${lab(g,v)} · ${counts[v]||0}`;if(g==='category'&&D.categories[v])b.title=D.categories[v].desc;b.setAttribute('aria-pressed',sel[g].has(v));
     b.onclick=()=>{sel[g].has(v)?sel[g].delete(v):sel[g].add(v);b.setAttribute('aria-pressed',sel[g].has(v));save();render()};
     box.appendChild(b)});
 }
@@ -254,9 +271,9 @@ function stats(){
   document.getElementById('foot').textContent=`Trang chỉ để xem. Sửa ý tưởng trong Obsidian; chạy lại nhathm-inspo-report để cập nhật.`;
 }
 function match(it){
-  for(const g in sel) if(sel[g].size&&!sel[g].has(it[g]))return false;
+  for(const g in sel) if(sel[g].size&&![].concat(it[g]).some(v=>sel[g].has(v)))return false;
   const q=qEl.value.trim().toLowerCase(); if(!q)return true;
-  return [it.id,it.title,it.author,it.topic,it.type,...(it.tags||[])].join(' ').toLowerCase().includes(q);
+  return [it.id,it.title,it.author,it.topic,it.type,...it.category.map(c=>lab('category',c)),...(it.tags||[])].join(' ').toLowerCase().includes(q);
 }
 function render(){
   const s=sortEl.value;
@@ -269,6 +286,7 @@ function render(){
     <div class="cb">
      <div class="meta"><span class="id">${esc(it.id)}</span><span class="pill st-${esc(it.status)}">${esc(lab('status',it.status))}</span>${it.dup?'<span class="pill dup">trùng</span>':''}</div>
      <div class="ct">${esc(it.title)}</div>
+     <div class="cats">${it.category.map(c=>`<span class="cat">${esc(lab('category',c))}</span>`).join('')}</div>
      <div class="meta"><span>${esc(lab('topic',it.topic))}</span>·<span>${esc(lab('type',it.type))}</span>·<span>${esc(lab('effort',it.effort))}</span>
       ${it.todo_open?`·<span>${it.todo_open} việc</span>`:''}${isDue(it)?'·<span class="duefl">đến hạn</span>':''}</div>
     </div></button>`).join('');
@@ -281,6 +299,7 @@ function openSheet(id){
    <span class="id">${esc(it.id)}</span>
    <h2 id="sh-title">${esc(it.title)}</h2>
    <dl class="kv"><dt>Trạng thái</dt><dd>${esc(lab('status',it.status))}${it.dup?` · trùng ${esc(it.dup)}`:''}</dd>
+    <dt>Category</dt><dd>${it.category.map(c=>esc(lab('category',c))).join(', ')}</dd>
     <dt>Chủ đề</dt><dd>${esc(lab('topic',it.topic))} · ${esc(lab('type',it.type))} · ${esc(lab('effort',it.effort))}</dd>
     <dt>Nguồn</dt><dd>${it.source?`<a href="${esc(it.source)}" target="_blank" rel="noopener">${esc(it.source)}</a>`:esc(it.author||'—')}</dd>
     <dt>Lưu / review</dt><dd>${esc(it.captured)} · <span class="${isDue(it)?'duefl':''}">${esc(it.review||'—')}</span></dd>
@@ -294,7 +313,7 @@ function closeSheet(){sheet.hidden=scrim.hidden=true;try{history.replaceState(nu
 document.getElementById('grid').onclick=e=>{const c=e.target.closest('.card');c&&openSheet(c.dataset.id)};
 scrim.onclick=closeSheet;document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!sheet.hidden)closeSheet()});
 qEl.oninput=render;sortEl.onchange=()=>{save();render()};
-['topic','type','status'].forEach(chips);stats();render();
+['category','topic','type','status'].forEach(chips);stats();render();
 if(location.hash.length>1)openSheet(decodeURIComponent(location.hash.slice(1)));
 </script>
 """
@@ -307,7 +326,7 @@ def main():
     a = ap.parse_args()
     items = build(a.ins)
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=7)))
-    data = {"items": items, "today": now.strftime("%Y-%m-%d"), "generated": now.strftime("%Y-%m-%d %H:%M")}
+    data = {"categories": load_categories(a.ins), "items": items, "today": now.strftime("%Y-%m-%d"), "generated": now.strftime("%Y-%m-%d %H:%M")}
     blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     with open(a.out, "w", encoding="utf-8") as f:

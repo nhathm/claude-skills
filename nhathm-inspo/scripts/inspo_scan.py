@@ -24,7 +24,7 @@ except ImportError:
 
 IMG = (".jpg", ".jpeg", ".png", ".webp", ".heic", ".gif")
 VID = (".mp4", ".mov", ".m4v", ".webm", ".mkv")
-THRESH = 8
+THRESH = 2  # same-template carousel cards sit at 4–8 apart; true re-uploads/recompressions at 0–2
 DROP_Q = re.compile(r"^(utm_.*|fbclid|gclid|igshid|mibextid|si|ref|ref_src|s|t|__cft__.*|__tn__)$")
 
 def norm_url(u):
@@ -88,7 +88,7 @@ def match(item, idx):
         if item.get("phash") and n["phash"]:
             d = imagehash.hex_to_hash(item["phash"]) - imagehash.hex_to_hash(n["phash"])
             if d <= THRESH and (best is None or d < best["distance"]):
-                best = {**n, "reason": "phash", "distance": d}
+                best = {**n, "reason": "phash", "distance": int(d)}
     return best
 
 def describe(path, url=None):

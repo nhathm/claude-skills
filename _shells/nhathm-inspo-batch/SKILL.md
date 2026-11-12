@@ -1,6 +1,6 @@
 ---
 name: "nhathm-inspo-batch"
-description: "Nightly cleanup for Rio's Obsidian Inspiration vault on GitHub claude-vault — finish notes left at status raw (thread abandoned before saving) and process images or videos dropped in Inspiration/_inbox. Use for the scheduled nightly inspo run or "chạy batch inspo"."
+description: "Nightly cleanup for Rio's Obsidian Inspiration vault on GitHub claude-vault — finish notes left at status raw (thread abandoned before saving) and process images or videos dropped in Inspiration/_inbox. Use for the scheduled nightly inspo run or 'chạy batch inspo'."
 ---
 
 # nhathm-inspo-batch (bản vỏ)

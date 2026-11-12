@@ -1,0 +1,53 @@
+filters:
+  and:
+    - file.inFolder("Inspiration/notes")
+properties:
+  note.category:
+    displayName: Category
+  note.status:
+    displayName: Status
+  note.type:
+    displayName: Type
+  note.review:
+    displayName: Review
+views:
+  - type: table
+    name: Đang mở
+    filters:
+      or:
+        - note.status == "inbox"
+        - note.status == "to-try"
+    order:
+      - file.name
+      - category
+      - status
+      - type
+      - effort
+      - related
+      - review
+    sort:
+      - property: review
+        direction: ASC
+  - type: table
+    name: Đến hạn review
+    filters:
+      and:
+        - note.review <= today()
+        - note.status != "archived"
+    order:
+      - file.name
+      - status
+      - review
+  - type: cards
+    name: Gallery
+    order:
+      - file.name
+      - type
+  - type: table
+    name: Tất cả
+    order:
+      - file.name
+      - category
+      - status
+      - type
+      - captured

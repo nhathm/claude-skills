@@ -1,0 +1,160 @@
+<title>Cài Inspiration Vault</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow reading column, numbered setup steps, copyable boxes. Phone first. */
+:root{
+  --bg:#f5f6f3; --surface:#ffffff; --ink:#1b1f1d; --muted:#5e6762; --line:#dfe3dd;
+  --accent:#2f6b4f; --accent-soft:#e3efe8; --note:#8a5a14; --note-soft:#f6ecdc;
+  --font:"Be Vietnam Pro",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121614; --surface:#1a201d; --ink:#e7ebe8; --muted:#9aa49f; --line:#2b332f;
+  --accent:#7cc4a0; --accent-soft:#1f3329; --note:#e3b067; --note-soft:#33281a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121614; --surface:#1a201d; --ink:#e7ebe8; --muted:#9aa49f; --line:#2b332f;
+  --accent:#7cc4a0; --accent-soft:#1f3329; --note:#e3b067; --note-soft:#33281a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.65 var(--font);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px}
+main{max-width:680px;margin:0 auto;display:grid;gap:28px}
+h1{font-size:28px;line-height:1.2;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.lede{color:var(--muted);margin:8px 0 0}
+h2{font-size:19px;line-height:1.3;margin:0 0 8px;text-wrap:balance;display:flex;gap:10px;align-items:baseline}
+.n{flex:none;font-family:var(--mono);font-size:13px;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:1px 7px}
+section p{margin:0 0 8px}
+ol,ul{margin:0;padding-left:22px}li{margin:4px 0}
+.need{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.need h2{margin-bottom:6px}
+.tip{background:var(--note-soft);color:var(--ink);border-radius:8px;padding:10px 12px;font-size:14.5px;margin-top:10px}
+.tip b{color:var(--note)}
+code{font-family:var(--mono);font-size:.86em;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:0 4px;overflow-wrap:anywhere}
+.copy{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-top:10px;overflow:hidden}
+.copy header{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 6px 12px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+.copy pre{margin:0;padding:12px;font:13.5px/1.6 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+button{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:3px 10px;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.opt{border-top:1px dashed var(--line);padding-top:24px}
+.opt h2 .n{background:var(--line);color:var(--muted)}
+details{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+details+details{margin-top:8px}
+summary{cursor:pointer;font-weight:600}
+a{color:var(--accent)}
+</style>
+
+<main>
+  <div>
+    <h1>Cài Inspiration Vault</h1>
+    <p class="lede">Gửi ảnh, video ngắn hoặc link bạn thấy hay vào Claude. Claude phân tích, chống trùng, rồi lưu thành ghi chú trong kho riêng của bạn trên GitHub. Xem lại mọi ý tưởng trên một trang web, ngay trên điện thoại. Cài một lần, khoảng 15 phút.</p>
+  </div>
+
+  <section class="need">
+    <h2>Cần chuẩn bị</h2>
+    <ul>
+      <li>Tài khoản <b>Claude gói trả phí</b> (có tính năng kết nối GitHub và chạy tác vụ).</li>
+      <li>Tài khoản <b>GitHub</b> (miễn phí), tạo ở bước 1.</li>
+      <li>Hai file người gửi hướng dẫn này đưa cho bạn: <code>inspo.zip</code> và <code>inspo-report.zip</code>. Lưu vào điện thoại, <b>không giải nén</b>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="n">1</span>Tạo kho trên GitHub</h2>
+    <ol>
+      <li>Mở <a href="https://github.com/signup" target="_blank" rel="noopener">github.com</a> bằng trình duyệt điện thoại, tạo tài khoản (hoặc đăng nhập).</li>
+      <li>Bấm dấu <b>+</b> ở góc trên → <b>New repository</b>.</li>
+      <li>Đặt tên <code>inspiration-vault</code>, chọn <b>Private</b>, tick <b>Add a README file</b> → <b>Create repository</b>.</li>
+    </ol>
+    <p class="tip"><b>Ghi lại:</b> tên tài khoản GitHub của bạn và tên kho, dạng <code>ten-ban/inspiration-vault</code>. Bước 4 sẽ dùng.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>Cho Claude dùng GitHub</h2>
+    <ol>
+      <li>Trong Claude, mở phần cài đặt <b>Connectors</b> (Kết nối), chọn <b>GitHub</b> → <b>Connect</b>, đăng nhập GitHub.</li>
+      <li>Khi GitHub hỏi cho phép truy cập kho nào, chọn <code>inspiration-vault</code>.</li>
+    </ol>
+    <p class="tip"><b>Lưu ý:</b> nếu không thấy mục này trong app, mở <a href="https://claude.ai" target="_blank" rel="noopener">claude.ai</a> bằng trình duyệt. Lần đầu dùng, Claude có thể hỏi lại quyền truy cập kho: chọn cho phép.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span>Cài 2 skill</h2>
+    <ol>
+      <li>Mở <a href="https://claude.ai" target="_blank" rel="noopener">claude.ai</a> bằng trình duyệt (dễ nhất trên máy tính, điện thoại cũng được).</li>
+      <li>Vào cài đặt, mục <b>Skills</b> → <b>tải skill lên</b> → chọn <code>inspo.zip</code>.</li>
+      <li>Làm lại với <code>inspo-report.zip</code>. Bật cả hai skill.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span>Tạo Project "Inspiration"</h2>
+    <ol>
+      <li>Trong Claude, vào <b>Projects</b> → tạo mới, đặt tên <b>Inspiration</b>.</li>
+      <li>Mở phần <b>hướng dẫn</b> (instructions) của Project, dán đoạn dưới, sửa 2 chỗ trong ngoặc nhọn.</li>
+    </ol>
+    <div class="copy">
+      <header><span>Hướng dẫn cho Project</span><button type="button" id="copy-instr" data-target="instr">Sao chép</button></header>
+      <pre id="instr">Vault: &lt;tên-github&gt;/inspiration-vault
+Tôi là &lt;tên bạn&gt;. Trả lời tiếng Việt, ngắn gọn.
+Khi tôi gửi ảnh, video ngắn hoặc link để lưu: dùng skill inspo.
+Khi tôi muốn xem các ý tưởng: dùng skill inspo-report.</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">5</span>Dùng hằng ngày</h2>
+    <p><b>Lưu một ý tưởng:</b> trong Project Inspiration, mở đoạn chat mới, gửi ảnh chụp màn hình, video ngắn hoặc link, kèm một câu vì sao bạn lưu. Ví dụ:</p>
+    <div class="copy">
+      <header><span>Tin nhắn mẫu</span><button type="button" id="copy-msg" data-target="msg">Sao chép</button></header>
+      <pre id="msg">Lưu cái này, mình muốn thử làm món này cuối tuần.</pre>
+    </div>
+    <p style="margin-top:10px">Lần đầu, Claude tự dựng kho (thư mục, danh mục) rồi mới lưu. Claude trả lời ngắn: nó là gì, có đáng không, nên làm gì tiếp. Bạn bàn thêm hoặc nói "lưu" là xong.</p>
+    <p><b>Xem tất cả:</b> nhắn <code>mở trang ý tưởng</code>. Claude tạo một trang web riêng tư, lọc theo danh mục, có ảnh. Lưu hoặc ghim link đó để mở nhanh. Muốn cập nhật trang: nhắn <code>cập nhật trang ý tưởng</code>.</p>
+    <p><b>Danh mục:</b> có sẵn Công việc, Nội dung, Học, Đời sống, Khác. Khi ý tưởng không vừa danh mục nào, Claude sẽ hỏi bạn có muốn thêm danh mục mới.</p>
+    <p class="tip"><b>Mẹo:</b> link Facebook, TikTok, Instagram thường cần đăng nhập nên Claude không đọc được. Gửi kèm ảnh chụp màn hình cho chắc.</p>
+  </section>
+
+  <section class="opt">
+    <h2><span class="n">+</span>Tuỳ chọn: xem bằng Obsidian</h2>
+    <p>Trang ý tưởng ở bước 5 là đủ để xem. Muốn đọc và sửa ghi chú như một cuốn sổ, cài Obsidian. Trên điện thoại hơi rườm rà; trên máy tính dễ hơn.</p>
+    <details>
+      <summary>Tạo mã truy cập GitHub</summary>
+      <ol>
+        <li>GitHub → ảnh đại diện → <b>Settings</b> → <b>Developer settings</b> → <b>Personal access tokens</b> → <b>Fine-grained tokens</b> → <b>Generate new token</b>.</li>
+        <li>Repository access: <b>Only select repositories</b> → <code>inspiration-vault</code>. Permissions → <b>Contents: Read and write</b>.</li>
+        <li>Tạo, rồi sao chép mã (chỉ hiện một lần).</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Cài Obsidian và kéo kho về</summary>
+      <ol>
+        <li>Cài <b>Obsidian</b> từ App Store / Google Play, tạo một vault trống tên <code>Inspiration</code> (không bật iCloud nếu dùng cách này).</li>
+        <li>Settings → <b>Community plugins</b> → bật → Browse → tìm <b>Git</b> → Install → Enable.</li>
+        <li>Trong cài đặt plugin Git: điền <b>Username</b> là tên GitHub, <b>Password/Token</b> là mã vừa tạo.</li>
+        <li>Mở bảng lệnh (vuốt xuống hoặc nút lệnh) → <b>Git: Clone an existing remote repo</b> → dán <code>https://github.com/&lt;tên-github&gt;/inspiration-vault.git</code> → thư mục để trống → đồng ý.</li>
+        <li>Trong cài đặt plugin, đặt <b>Auto pull interval</b> khoảng 30 phút để ý tưởng mới tự về.</li>
+      </ol>
+    </details>
+  </section>
+
+  <section>
+    <h2>Gặp lỗi</h2>
+    <ul>
+      <li><b>Claude báo không vào được kho:</b> làm lại bước 2, kiểm tra đã cho phép <code>inspiration-vault</code>, và dòng <code>Vault:</code> ở bước 4 đúng tên.</li>
+      <li><b>Claude không dùng skill:</b> kiểm tra 2 skill đã bật (bước 3), và bạn đang chat trong Project Inspiration.</li>
+      <li><b>Link không đọc được:</b> gửi ảnh chụp màn hình thay link.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+document.querySelectorAll('button[data-target]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const el=document.getElementById(b.dataset.target), txt=el.textContent;
+    const done=()=>{const o=b.textContent;b.textContent='Đã chép';setTimeout(()=>b.textContent=o,1500)};
+    const fallback=()=>{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Đã chọn, bấm Copy'};
+    try{navigator.clipboard.writeText(txt).then(done,fallback)}catch(e){fallback()}
+  });
+});
+</script>

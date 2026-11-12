@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Build a single-file HTML gallery of Rio's Inspiration vault.
+"""Build a single-file HTML gallery of an Inspiration vault.
 
-Usage: python3 -I build_report.py <vault>/Inspiration --out <file.html>
+Usage: python3 -I build_report.py <vault>/Inspiration --out <file.html> [--source owner/repo]
 
 Reads only note frontmatter + sections and the first attachment per note (shrunk to a
 thumbnail and inlined as a data URI). No network, no AI. Output is self-contained and
@@ -14,7 +14,7 @@ try:
 except ImportError:
     Image = None
 
-SECTIONS = ["Rio note", "Summary", "Analysis", "Research", "Next action"]
+SECTIONS = ["Ghi chú", "Tóm tắt", "Phân tích", "Nguồn", "Việc tiếp theo"]
 THUMB_W = 480
 
 
@@ -28,6 +28,10 @@ def parse_note(path):
             if ":" not in line or line.startswith(" "):
                 continue
             k, v = line.split(":", 1)
+            v = v.strip()
+            if v.startswith('"') and v.find('"', 1) > 0:
+                fm[k.strip()] = v[1:v.find('"', 1)]
+                continue
             v = v.split(" #", 1)[0].strip()
             if v.startswith("[") and v.endswith("]"):
                 v = [t.strip().strip('"') for t in v[1:-1].split(",") if t.strip()]
@@ -114,12 +118,13 @@ def build(ins):
         if not fm.get("id"):
             continue
         img = next((e for e in embeds if re.search(r"\.(jpe?g|png|webp|gif)$", e, re.I)), None)
-        todos = re.findall(r"- \[( |x)\]", sec.get("Next action", ""))
+        todos = re.findall(r"- \[( |x)\]", sec.get("Việc tiếp theo", ""))
         items.append({
             "id": fm.get("id"), "title": fm.get("title", ""), "status": fm.get("status", ""),
             "kind": fm.get("kind", ""), "type": fm.get("type", ""), "topic": fm.get("topic", ""),
             "effort": fm.get("effort", ""), "review": fm.get("review", ""),
-            "captured": fm.get("captured", ""), "author": fm.get("author", ""),
+            "captured": fm.get("captured", ""), "author": fm.get("source_author") or fm.get("author", ""),
+            "captured_by": fm.get("captured_by", "") or "—",
             "source": fm.get("source", ""), "tags": fm.get("tags") or [],
             "category": (fm.get("category") if isinstance(fm.get("category"), list) else [fm["category"]] if fm.get("category") else ["khac"]),
             "dup": re.sub(r"[\[\]\"]", "", fm.get("duplicate_of", "") or ""),
@@ -182,7 +187,6 @@ input[type=search]{flex:1 1 220px;min-width:0}
 .ct{font-weight:600;font-size:14.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .pill{font-size:11.5px;border-radius:999px;padding:1px 8px;background:var(--accent-soft);color:var(--accent)}
 .pill.st-raw,.pill.st-archived{background:var(--line);color:var(--muted)}
-.pill.st-to-try{background:var(--warn-soft);color:var(--warn)}
 .cats{display:flex;gap:4px;flex-wrap:wrap}.cat{font-size:11.5px;border:1px solid var(--line);border-radius:4px;padding:0 6px;color:var(--ink)}
 .pill.dup{background:var(--line);color:var(--muted)}
 .duefl{color:var(--warn);font-weight:600}
@@ -203,6 +207,20 @@ code{font-family:var(--mono);font-size:.88em;background:var(--bg);border:1px sol
 .wl{color:var(--accent);font-weight:500}
 .close{position:sticky;top:0;float:right;font:inherit;font-size:14px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:4px 12px;cursor:pointer}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;font-size:13.5px;margin-top:8px}.kv dt{color:var(--muted)}.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.filters summary{cursor:pointer;font-size:13px;color:var(--muted);list-style:none;display:inline-flex;gap:6px;align-items:center;padding:2px 0}
+.filters summary::-webkit-details-marker{display:none}
+.filters summary::before{content:"▸";transition:transform .15s}.filters[open] summary::before{transform:rotate(90deg)}
+#nf{color:var(--accent);font-weight:600}
+.fbody{display:grid;gap:8px;margin-top:8px;max-height:60vh;overflow:auto}
+.toggle{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center;cursor:pointer}
+.cmds{display:grid;gap:6px}
+.cmd{display:flex;gap:8px;align-items:center;min-width:0}
+.cmd code{flex:1;min-width:0;padding:5px 8px;font-size:14px;font-family:var(--font);user-select:all;-webkit-user-select:all}
+.cmd button{font:inherit;font-size:13px;flex:none;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:4px 10px;cursor:pointer}
+.cmd button.ok{border-color:var(--accent);color:var(--accent)}
+.pill.st-later{background:var(--warn-soft);color:var(--warn)}
+.pill.st-done{background:var(--accent);color:var(--surface)}
+.pill.st-dropped{background:var(--line);color:var(--muted);text-decoration:line-through}
 footer{margin-top:28px;color:var(--muted);font-size:12.5px}
 @media (prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
 @media (max-width:480px){h1{font-size:23px}.row .lbl{width:100%}}
@@ -215,15 +233,22 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px}
   </header>
   <div class="bar">
     <div class="row">
-      <input type="search" id="q" placeholder="Tìm tiêu đề, tag, tác giả…" aria-label="Tìm kiếm">
+      <input type="search" id="q" placeholder="Tìm mã, tiêu đề, tag, tác giả…" aria-label="Tìm kiếm">
+      <select id="when" aria-label="Thời gian lưu">
+        <option value="0">Mọi lúc</option><option value="7">7 ngày</option><option value="30">30 ngày</option><option value="90">90 ngày</option>
+      </select>
       <select id="sort" aria-label="Sắp xếp">
         <option value="new">Mới nhất</option><option value="review">Review sớm nhất</option><option value="id">Theo ID</option>
       </select>
     </div>
+    <details class="filters" id="filters"><summary>Bộ lọc <span id="nf"></span></summary><div class="fbody">
     <div class="row" id="f-category"><span class="lbl">Category</span></div>
     <div class="row" id="f-topic"><span class="lbl">Chủ đề</span></div>
     <div class="row" id="f-type"><span class="lbl">Loại</span></div>
     <div class="row" id="f-status"><span class="lbl">Trạng thái</span></div>
+    <div class="row" id="f-captured_by"><span class="lbl">Người lưu</span></div>
+    <div class="row"><label class="toggle"><input type="checkbox" id="closed"> Hiện ý tưởng đã xong / bỏ / lưu trữ</label></div>
+    </div></details>
   </div>
   <p class="count" id="count"></p>
   <div class="grid" id="grid"></div>
@@ -239,18 +264,20 @@ const D=JSON.parse(document.getElementById('data').textContent);
 const items=D.items, today=D.today;
 const L={topic:{"ai-agent":"AI agent","personal-ai":"AI cá nhân","claude-skill":"Claude skill",video:"Video",dev:"Dev",ios:"iOS",design:"Design",other:"Khác"},
  type:{skill:"Skill",project:"Project",tool:"Tool","design-pattern":"Design pattern",idea:"Ý tưởng",setup:"Setup"},
- status:{raw:"Raw",inbox:"Inbox","to-try":"Sẽ thử",tried:"Đã thử",archived:"Lưu trữ"},
+ status:{raw:"Lưu tạm",inbox:"Inbox",later:"Để sau",done:"Xong",dropped:"Bỏ",archived:"Lưu trữ"},
  effort:{"15-phut":"15 phút","1-buoi":"1 buổi","1-tuan":"1 tuần"}};
 L.category=Object.fromEntries(Object.entries(D.categories||{}).map(([k,v])=>[k,v.name]));
 const lab=(g,v)=>(L[g]&&L[g][v])||v||'—';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const isDue=it=>it.review&&it.review<=today&&!['archived','tried'].includes(it.status);
-const sel={category:new Set(),topic:new Set(),type:new Set(),status:new Set()};
+const CLOSED=['done','dropped','archived'];
+const isDue=it=>it.review&&it.review<=today&&['inbox','raw'].includes(it.status);
+const sel={category:new Set(),topic:new Set(),type:new Set(),status:new Set(),captured_by:new Set()};
 let st={};try{st=JSON.parse(localStorage.getItem('inspo-filters')||'{}')}catch(e){}
 for(const g in sel)(st[g]||[]).forEach(v=>sel[g].add(v));
-const qEl=document.getElementById('q'),sortEl=document.getElementById('sort');
-if(st.sort)sortEl.value=st.sort;
-function save(){try{localStorage.setItem('inspo-filters',JSON.stringify({category:[...sel.category],topic:[...sel.topic],type:[...sel.type],status:[...sel.status],sort:sortEl.value}))}catch(e){}}
+const qEl=document.getElementById('q'),sortEl=document.getElementById('sort'),whenEl=document.getElementById('when'),closedEl=document.getElementById('closed');
+if(st.sort)sortEl.value=st.sort;if(st.when)whenEl.value=st.when;closedEl.checked=!!st.closed;
+function save(){try{const o={sort:sortEl.value,when:whenEl.value,closed:closedEl.checked};for(const g in sel)o[g]=[...sel[g]];localStorage.setItem('inspo-filters',JSON.stringify(o))}catch(e){}}
+const since=d=>{if(!+d)return '';const t=new Date(today+'T00:00:00');t.setDate(t.getDate()-(+d));return t.toISOString().slice(0,10)};
 
 function chips(g){
   const box=document.getElementById('f-'+g), counts={};
@@ -266,17 +293,21 @@ function stats(){
   const n=s=>items.filter(i=>i.status===s).length, due=items.filter(isDue).length;
   document.getElementById('stats').innerHTML=
     `<span class="stat"><b>${items.length}</b> ý tưởng</span><span class="stat"><b>${n('inbox')}</b> inbox</span>`+
-    `<span class="stat"><b>${n('to-try')}</b> sẽ thử</span>`+(due?`<span class="stat due"><b>${due}</b> đến hạn review</span>`:'');
-  document.getElementById('sub').textContent=`Cập nhật ${D.generated} · nguồn: claude-vault/Inspiration`;
-  document.getElementById('foot').textContent=`Trang chỉ để xem. Sửa ý tưởng trong Obsidian; chạy lại nhathm-inspo-report để cập nhật.`;
+    `<span class="stat"><b>${n('later')}</b> để sau</span><span class="stat"><b>${n('done')}</b> xong</span>`+(due?`<span class="stat due"><b>${due}</b> đến hạn xem lại</span>`:'');
+  document.getElementById('sub').textContent=`Cập nhật ${D.generated} · nguồn: ${D.source}`;
+  document.getElementById('foot').textContent=`Trang chỉ để xem. Đổi trạng thái hay ghi thêm: mở một ý tưởng, chép lệnh, dán vào chat trong Project Inspiration. Nhắn "trang ý tưởng" để cập nhật trang.`;
 }
 function match(it){
+  if(!closedEl.checked&&CLOSED.includes(it.status)&&!sel.status.has(it.status))return false;
+  const s=since(whenEl.value); if(s&&(it.captured||'')<s)return false;
   for(const g in sel) if(sel[g].size&&![].concat(it[g]).some(v=>sel[g].has(v)))return false;
   const q=qEl.value.trim().toLowerCase(); if(!q)return true;
-  return [it.id,it.title,it.author,it.topic,it.type,...it.category.map(c=>lab('category',c)),...(it.tags||[])].join(' ').toLowerCase().includes(q);
+  return [it.id,it.title,it.author,it.captured_by,it.topic,it.type,...it.category.map(c=>lab('category',c)),...(it.tags||[])].join(' ').toLowerCase().includes(q);
 }
 function render(){
   const s=sortEl.value;
+  const nOn=Object.values(sel).reduce((n,x)=>n+x.size,0)+(+whenEl.value?1:0)+(closedEl.checked?1:0);
+  document.getElementById('nf').textContent=nOn?`· ${nOn} đang bật`:'';
   const list=items.filter(match).sort((a,b)=>s==='review'?(a.review||'9').localeCompare(b.review||'9'):s==='id'?a.id.localeCompare(b.id):(b.captured+b.id).localeCompare(a.captured+a.id));
   document.getElementById('count').textContent=`${list.length} / ${items.length} ý tưởng`;
   document.getElementById('empty').hidden=list.length>0;
@@ -292,7 +323,7 @@ function render(){
     </div></button>`).join('');
 }
 const sheet=document.getElementById('sheet'),scrim=document.getElementById('scrim');let lastFocus=null;
-const NAMES={"Rio note":"Ghi chú của Rio","Summary":"Tóm tắt","Analysis":"Phân tích","Research":"Nguồn","Next action":"Việc tiếp theo"};
+const NAMES={};
 function openSheet(id){
   const it=items.find(i=>i.id===id);if(!it)return;lastFocus=document.activeElement;
   sheet.innerHTML=`<button class="close" type="button" id="close">Đóng</button>
@@ -302,18 +333,36 @@ function openSheet(id){
     <dt>Category</dt><dd>${it.category.map(c=>esc(lab('category',c))).join(', ')}</dd>
     <dt>Chủ đề</dt><dd>${esc(lab('topic',it.topic))} · ${esc(lab('type',it.type))} · ${esc(lab('effort',it.effort))}</dd>
     <dt>Nguồn</dt><dd>${it.source?`<a href="${esc(it.source)}" target="_blank" rel="noopener">${esc(it.source)}</a>`:esc(it.author||'—')}</dd>
-    <dt>Lưu / review</dt><dd>${esc(it.captured)} · <span class="${isDue(it)?'duefl':''}">${esc(it.review||'—')}</span></dd>
+    <dt>Người lưu</dt><dd>${esc(it.captured_by)}</dd>
+    <dt>Lưu / xem lại</dt><dd>${esc(it.captured)} · <span class="${isDue(it)?'duefl':''}">${esc(it.review||'—')}</span></dd>
     ${it.tags.length?`<dt>Tag</dt><dd>${it.tags.map(t=>'#'+esc(t)).join(' ')}</dd>`:''}</dl>
+   <h3>Lệnh (chép rồi dán vào chat)</h3><div class="cmds">${cmds(it).map(c=>`<div class="cmd"><code>${esc(c)}</code><button type="button" data-cmd="${esc(c)}">Chép</button></div>`).join('')}</div>
    ${it.thumb?`<h3>Ảnh</h3><img src="${it.thumb}" alt="">`:''}
    ${Object.entries(it.html).map(([k,v])=>`<h3>${NAMES[k]||k}</h3>${v}`).join('')}`;
   sheet.hidden=scrim.hidden=false;document.getElementById('close').onclick=closeSheet;document.getElementById('close').focus();
   try{history.replaceState(null,'','#'+id)}catch(e){}
 }
+function cmds(it){
+  const c=[];
+  if(it.status!=='done')c.push(`xong ${it.id}`);
+  if(it.status!=='later')c.push(`để sau ${it.id}`);
+  if(it.status!=='dropped')c.push(`bỏ ${it.id}`);
+  c.push(`thêm vào ${it.id}: `);
+  return c;
+}
+function copyText(t){
+  if(navigator.clipboard&&window.isSecureContext)return navigator.clipboard.writeText(t).then(()=>true,()=>legacy(t));
+  return Promise.resolve(legacy(t));
+}
+function legacy(t){const a=document.createElement('textarea');a.value=t;a.setAttribute('readonly','');a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}a.remove();return ok}
+sheet.addEventListener('click',e=>{const b=e.target.closest('button[data-cmd]');if(!b)return;
+  copyText(b.dataset.cmd).then(ok=>{b.textContent=ok?'Đã chép':'Giữ để chép';b.classList.toggle('ok',ok);setTimeout(()=>{b.textContent='Chép';b.classList.remove('ok')},1600)})});
 function closeSheet(){sheet.hidden=scrim.hidden=true;try{history.replaceState(null,'',location.pathname+location.search)}catch(e){};lastFocus&&lastFocus.focus()}
 document.getElementById('grid').onclick=e=>{const c=e.target.closest('.card');c&&openSheet(c.dataset.id)};
 scrim.onclick=closeSheet;document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!sheet.hidden)closeSheet()});
-qEl.oninput=render;sortEl.onchange=()=>{save();render()};
-['category','topic','type','status'].forEach(chips);stats();render();
+qEl.oninput=render;sortEl.onchange=whenEl.onchange=closedEl.onchange=()=>{save();render()};
+['category','topic','type','status','captured_by'].forEach(chips);stats();render();
+if(window.matchMedia('(min-width:900px)').matches)document.getElementById('filters').open=true;
 if(location.hash.length>1)openSheet(decodeURIComponent(location.hash.slice(1)));
 </script>
 """
@@ -323,17 +372,18 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("ins", help="path to <vault>/Inspiration")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--source", default="GitHub", help="owner/repo shown in the header")
     a = ap.parse_args()
     items = build(a.ins)
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=7)))
-    data = {"categories": load_categories(a.ins), "items": items, "today": now.strftime("%Y-%m-%d"), "generated": now.strftime("%Y-%m-%d %H:%M")}
+    data = {"categories": load_categories(a.ins), "items": items, "source": a.source, "today": now.strftime("%Y-%m-%d"), "generated": now.strftime("%Y-%m-%d %H:%M")}
     blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     with open(a.out, "w", encoding="utf-8") as f:
         f.write(TEMPLATE.replace("__DATA__", blob))
     size = os.path.getsize(a.out)
     print(json.dumps({"out": a.out, "items": len(items), "bytes": size,
-                      "due": sum(1 for i in items if i["review"] and i["review"] <= data["today"])}))
+                      "due": sum(1 for i in items if i["review"] and i["review"] <= data["today"] and i["status"] in ("inbox", "raw"))}))
     if size > 15_000_000:
         sys.exit("report exceeds 15MB; lower THUMB_W")
 

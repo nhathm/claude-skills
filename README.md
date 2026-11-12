@@ -1,25 +1,33 @@
 # claude-skills
 
-Skill do Rio tự viết. Prefix `nhathm-` để phân biệt với skill tải về.
+Skill do Rio (nhathm) viết, prefix `nhathm-`. Dùng chung cho mọi người; dữ liệu của mỗi người nằm trong repo vault riêng của họ.
+
+**Cài:** mở Claude, nhắn `Cài skill từ https://github.com/nhathm/claude-skills` (Claude làm theo [INSTALL.md](INSTALL.md)).
 
 | Skill | Việc |
 |---|---|
-| `nhathm-inspo` | Xử lý ngay 1 ảnh inspiration vào Obsidian vault |
-| `nhathm-inspo-batch` | Batch hằng đêm cho `Inspiration/_inbox` |
-| `nhathm-inspo-digest` | Digest + cleanup thứ 6 |
-| `nhathm-inspo-report` | Trang HTML (artifact) xem toàn bộ ý tưởng |
+| `nhathm-inspo` | Lưu ảnh / video ngắn / link vào vault, kèm phân tích; lệnh `hỏi:` `xong` `bỏ` `để sau` `tìm` `thêm vào` |
+| `nhathm-inspo-report` | Trang web (artifact claude.ai) xem toàn bộ ý tưởng, có lọc và nút chép lệnh |
+| `nhathm-inspo-batch` | Tuỳ chọn: batch đêm, hoàn tất note dở và ảnh trong `_inbox` |
+| `nhathm-inspo-digest` | Tuỳ chọn: digest tuần + dọn dẹp |
 
-## Cài trên claude.ai: bản vỏ
-Trên claude.ai chỉ cài **bản vỏ** trong `_shells/<skill>/SKILL.md`: nó clone repo này rồi làm theo `<skill>/SKILL.md`.
-- Sửa hướng dẫn hoặc script → sửa folder skill, **push là xong**.
-- Đổi `description` (lúc nào skill được gọi) → sửa cả `_shells/<skill>/SKILL.md` và cập nhật bản vỏ trên claude.ai.
-- Skill mới → tạo `<skill>/` + `_shells/<skill>/`, cài bản vỏ lên claude.ai một lần.
+## Kiến trúc
+```
+Repo này (public, code)              Vault (private, dữ liệu, mỗi người một repo)
+<skill>/SKILL.md + scripts/          Inspiration/
+_shells/<skill>/SKILL.md  (bản vỏ)     notes/  attachments/  _inbox/  _archive/  _report/
+                                       config.md      ← chủ vault, lăng kính phân tích riêng
+                                       categories.md  ← danh mục riêng
+```
+- Hướng dẫn Project khai báo `Vault: <owner>/<repo>`, `Tôi là <tên>`, và tuỳ chọn `Channel: main|stable`.
+- Mỗi Project trỏ một vault → tách được dữ liệu (cá nhân / công việc) trong cùng một tài khoản Claude.
 
-## Kit chia sẻ (`kit/`)
-Bản tổng quát cho người khác dùng, **tự chứa** (không clone repo này), không có tên/đường dẫn cá nhân:
-- `kit/inspo/` (lưu ý tưởng, tự dựng vault ở lần đầu), `kit/inspo-report/` (trang xem ý tưởng).
-- Vault của người nhận khai báo bằng dòng `Vault: <owner>/<repo>` trong hướng dẫn Project.
-- `kit/huong-dan.html`: hướng dẫn cài (bản đang chia sẻ là artifact claude.ai).
-- Đóng gói: `cd kit && zip -r inspo.zip inspo && zip -r inspo-report.zip inspo-report`.
-- Sửa skill của Rio không tự sang kit; khi muốn chia sẻ bản mới, port thay đổi sang `kit/` và gửi lại zip.
+## Kênh phát hành
+- `main`: bản đang phát triển. Rio dùng (`Channel: main`).
+- `stable`: mọi người khác (mặc định). Đẩy bản ổn định: `git push origin main:stable`.
+- Bản vỏ lấy kênh mỗi lần chạy → sửa skill chỉ cần push. Cài lại bản vỏ trên claude.ai chỉ khi đổi `description` hoặc logic của bản vỏ.
 
+## Phát triển
+- Skill mới: tạo `<skill>/` + `_shells/<skill>/`, thêm vào INSTALL.md nếu người dùng thường cần.
+- Script chạy với `python3 -I`, chỉ đọc frontmatter, không gọi mạng.
+- Nâng cấp vault cũ lên định dạng v2: `python3 -I nhathm-inspo/scripts/migrate_v2.py <vault>/Inspiration --owner <tên>`.

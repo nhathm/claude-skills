@@ -1,107 +1,114 @@
 ---
 name: "nhathm-inspo"
-description: "Analyse and save something Rio found while browsing — an image/screenshot, a short video, or a link (web, Facebook, Threads, X, YouTube…) about AI agents, personal AI setups, Claude skills, video editing, dev tools, design or any idea. Hash/dedupe, analyse, discuss, light research, then save a note to his Obsidian vault via GitHub claude-vault. Use whenever Rio sends such material to keep, in the Inspiration project, or with /nhathm-inspo."
+description: "Analyse and save something the user found while browsing (an image/screenshot, a short video, or a link from Facebook, TikTok, Threads, X, YouTube, the web) into their Inspiration vault, an Obsidian folder in their own GitHub repo; also handle the vault commands hỏi:, xong, bỏ, để sau, tìm, thêm vào. Use whenever the user sends such material, in an Inspiration project, or with /nhathm-inspo."
 ---
 
-# nhathm-inspo — phân tích & lưu 1 inspiration
+# nhathm-inspo: phân tích, lưu và quản lý ý tưởng
 
-Rio lướt social, gửi vào thread **ảnh, video ngắn hoặc link**, thường kèm một câu của mình. Giá trị nằm ở **phân tích + ngữ cảnh của Rio**, không phải bản thân tài liệu. Luôn phân tích trước khi lưu. Trả lời tiếng Việt, ngắn, có chính kiến.
+Người dùng lướt mạng, gửi vào chat **ảnh, video ngắn hoặc link**, thường kèm một câu. Giá trị nằm ở **phân tích + ngữ cảnh của người dùng**, không phải bản thân tài liệu. Luôn phân tích trước khi lưu. Trả lời bằng ngôn ngữ người dùng đang viết (mặc định tiếng Việt), ngắn, có chính kiến.
 
-**Inspiration là kho ý tưởng cho mọi công việc của Rio** — không chỉ video, và video không chỉ talking-head. Đánh giá mỗi thứ theo giá trị riêng: nó mở ra việc gì, loại nội dung/sản phẩm gì cho Rio. Chỉ so với hệ thống hay skill Rio đang có khi thật sự liên quan (bổ sung một bước, thay một công cụ); không ép mọi thứ vào dự án đang làm, và để `related` trống nếu không liên quan.
+Code skill dùng chung cho mọi người; phần riêng của từng người nằm trong vault của họ (`config.md`, `categories.md`).
 
-## Nơi lưu: GitHub là nguồn ghi duy nhất
-Mọi ghi của Claude đi vào repo private `nhathm/claude-vault` (Obsidian vault). Obsidian Git trên Mac pull về, iCloud đưa sang iPhone. **Không ghi trực tiếp vào vault trên Mac.**
+## Setup (một lần mỗi đoạn chat)
+1. **Đọc khai báo** trong hướng dẫn Project (hoặc trong tin nhắn / prompt của scheduled task):
+   - `Vault: <owner>/<repo>`: bắt buộc. Không có → hỏi tên repo GitHub, nhắc thêm dòng này vào hướng dẫn Project.
+   - `Tôi là <tên>`: người lưu (`captured_by`). Không có → `owner` trong `config.md`.
+2. `add_repo` (access: push) cho repo vault, clone theo hướng dẫn của tool vào `/home/claude/<repo>` (đã có thì `git pull -q`). Lỗi quyền → nói rõ: cần kết nối GitHub với Claude và cho phép repo này; dừng.
+3. Git identity trống → `user.name "Claude"`, `user.email "noreply@anthropic.com"`.
+4. Biến: `SK=/home/claude/claude-skills/nhathm-inspo`, `INS=/home/claude/<repo>/Inspiration`, `SCAN=$SK/scripts/inspo_scan.py`, `CMD=$SK/scripts/inspo_cmd.py`.
+5. **Lần đầu** (chưa có `$INS`): copy `$SK/template/*` vào `$INS/`, điền `owner:` trong `config.md` bằng tên ở bước 1 (chưa có tên → hỏi), tạo `notes/.gitkeep`, `attachments/.gitkeep`, `_inbox/.gitkeep`. Commit + push `inspo: khởi tạo vault`. Chào 2 dòng: vault sẵn sàng, gửi ý tưởng đầu tiên đi.
+   - Có `$INS` nhưng thiếu `config.md` → copy từ template, điền `owner`, commit cùng thay đổi kế tiếp.
+6. **Đọc `$INS/config.md`** (bối cảnh, lăng kính, hệ thống để so sánh) và bảng `$INS/categories.md`. Đây là cách phân tích riêng của vault này.
+7. `pip install --break-system-packages -q imagehash pillow` nếu thiếu; video cần `ffmpeg`.
 
-Setup (một lần mỗi thread):
-1. `add_repo` (access: push) cho `nhathm/claude-vault` và `nhathm/claude-skills`, clone theo hướng dẫn của tool (vd `/home/claude/claude-vault`, `/home/claude/claude-skills`).
-2. `pip install --break-system-packages -q imagehash pillow` nếu thiếu; video cần `ffmpeg`.
-3. `INS=/home/claude/claude-vault/Inspiration`, `SCAN=/home/claude/claude-skills/nhathm-inspo/scripts/inspo_scan.py`. Quy ước vault: `INS/README.md`.
+## Nhận lệnh
+| Tin nhắn | Làm |
+|---|---|
+| ảnh / video / link (kèm hoặc không kèm câu) | luồng **Lưu** bên dưới |
+| bắt đầu bằng `hỏi:` | bước 1 + 3 + 4 của luồng Lưu, **không** lưu tạm, không commit. Cuối câu trả lời: "Muốn lưu thì nhắn `lưu`." |
+| `xong` / `bỏ` / `để sau` + mã hoặc từ khoá | `python3 -I $CMD "$INS" status <id> done\|dropped\|later` |
+| `tìm <từ khoá>` | `python3 -I $CMD "$INS" find "<từ khoá>"` → liệt kê `id · title · status`, tối đa 5. Không mở note |
+| `thêm vào <mã>: <nội dung>` | `python3 -I $CMD "$INS" append <id> "<nội dung>"` |
+| `trang ý tưởng` / mở / cập nhật trang | dùng skill `nhathm-inspo-report` |
 
-## 1. Nhận diện đầu vào + dedupe (0 token)
+- Lệnh nhận **mã** (`INS-…`, hoặc phần đuôi như `0012`) hoặc **từ khoá**. Từ khoá → chạy `find` trước: đúng 1 kết quả thì làm luôn; nhiều kết quả thì liệt kê và hỏi chọn, **không tự đoán**.
+- Script trả `error: ambiguous` → liệt kê `candidates` và hỏi.
+- Lệnh sửa note: commit + push `inspo: <id> <lệnh>`, trả lời 1 dòng.
+
+## Luồng Lưu
+
+### 1. Nhận diện đầu vào + chống trùng
 | Đầu vào | Lệnh | "Nhìn" bằng gì |
 |---|---|---|
-| Ảnh | `python3 -I $SCAN "$INS" --file <ảnh>` | ảnh, 1 lần |
-| Video | `python3 -I $SCAN "$INS" --file <video> [--url <link post>]` → tạo `*.sheet.jpg` (6 khung, lưới 3×2) | contact sheet, 1 lần; lời thoại: dùng caption/phụ đề trong khung, hoặc hỏi Rio nếu nội dung nằm ở lời nói |
-| Link | `python3 -I $SCAN "$INS" --url <link>` | WebFetch |
+| Ảnh | `python3 -I $SCAN "$INS" --file <ảnh> --by "<tên>"` | ảnh, 1 lần |
+| Video | `python3 -I $SCAN "$INS" --file <video> [--url <link>] --by "<tên>"` → tạo `*.sheet.jpg` (6 khung) | ảnh tóm tắt, 1 lần; lời nói: dùng phụ đề trong khung hoặc hỏi |
+| Link | `python3 -I $SCAN "$INS" --url <link> --by "<tên>"` | WebFetch |
 
-- Link mạng xã hội (Facebook, Instagram, Threads, X, TikTok) thường bị chặn đăng nhập. Fetch 1 lần; thất bại → nói rõ, xin Rio screenshot/caption, vẫn lưu tạm với URL. **Không** vòng qua bằng curl, mirror hay cache.
-- `duplicate` có giá trị (`sha256` / `url` / `phash`) → báo "đã lưu: <id> <title> (<status>)", hỏi Rio có muốn bổ sung không. **Dừng**, không tạo note mới.
+- Link mạng xã hội thường bị chặn đăng nhập. Fetch 1 lần; thất bại → nói rõ, xin ảnh chụp màn hình hoặc caption, vẫn lưu tạm với URL. **Không** vòng qua bằng curl, mirror hay cache.
+- `duplicate` có giá trị → báo "đã lưu rồi: <id> <title> (<status>)", hỏi có muốn bổ sung không (bổ sung = lệnh `thêm vào`). **Dừng**, không tạo note mới.
 - Không trùng → lấy `new_id`.
 
-## 2. Lưu tạm ngay
-Để không mất nếu Rio bỏ dở: note `INS/notes/<id> capture.md`, `status: raw`, `kind`, `source`, hash, `captured`, `## Rio note` chép nguyên câu Rio gửi. Tệp đính kèm:
-- ảnh → `attachments/<id>.<ext>`
-- video → **chỉ** contact sheet `attachments/<id>.sheet.jpg` (không commit video; ghi `duration` và `source`)
-- link → không có tệp.
-Commit + push: `inspo: <id> raw`.
+### 2. Lưu tạm ngay
+Để không mất nếu người dùng bỏ dở: note `$INS/notes/<id> capture.md`, `status: raw`, `kind`, `source`, hash, `captured`, `captured_by`, `## Ghi chú` chép nguyên câu người dùng gửi. Tệp đính kèm: ảnh → `attachments/<id>.<ext>`; video → **chỉ** `attachments/<id>.sheet.jpg` (không commit video, ghi `duration`); link → không có tệp. Commit + push `inspo: <id> raw`.
 
-## 3. Phân tích theo lăng kính của chủ đề
-Xác định chủ đề trước, rồi trả lời các câu hỏi tương ứng (chọn 1–2 lăng kính, đừng ép):
+### 3. Phân tích
+- Theo **lăng kính trong `config.md`** (chọn 1–2, đừng ép). So với "Hệ thống để so sánh" chỉ khi thật sự liên quan; không liên quan thì để `related` trống.
+- **Category**: chọn 1 hoặc nhiều slug trong `categories.md`. Không vừa cái nào → đề xuất category mới (slug, tên, mô tả 1 dòng) và hỏi; đồng ý thì thêm dòng vào `categories.md` trong cùng commit. Không hỏi được (batch) → `khac`.
+- **Trùng ý**: `python3 -I $CMD "$INS" find "<2-3 từ khoá>"`. Cùng ý tưởng nguồn khác → `duplicate_of: "[[<id> …]]"`, báo người dùng.
+- **Tìm hiểu nhẹ**: 3–5 web search: nguồn gốc (repo, tác giả, bài gốc), độ tin cậy, thứ tương đương.
 
-| Chủ đề | Câu hỏi cần trả lời |
-|---|---|
-| **AI agent / bộ AI cá nhân** | Kiến trúc: trigger, memory/lưu trữ, tool/MCP, model, chạy ở đâu (local/cloud), chi phí. So với hệ của Rio (Obsidian vault + GitHub, skill `nhathm-*`, scheduled task, Claude app/Code): họ làm gì tốt hơn, cái gì nên lấy về, cái gì Rio đã có rồi. |
-| **Claude skill / MCP / plugin** | Làm gì, nguồn cài (repo, marketplace), trùng skill nào Rio đang có, đáng cài/tự viết `nhathm-*` không. |
-| **Video / motion / content** | Kỹ thuật, template hay cách làm nội dung gì (talking-head, faceless, explainer, motion graphics, 3D…); mở ra loại nội dung nào cho Rio; làm bằng công cụ gì, công sức bao nhiêu. Liên hệ video-studio chỉ khi nó bổ sung một bước trong luồng edit (brief, cắt, âm thanh, màu, hiệu ứng, xuất). |
-| **Dev / iOS / tooling** | Giải quyết vấn đề gì, mức trưởng thành, áp dụng cho dự án cá nhân hay công việc. |
-| **Design / UI** | Pattern gì, dùng ở đâu. |
-| **Khác** | Là gì, vì sao đáng chú ý, bước thử nhỏ nhất. |
+### 4. Trả lời
+3–8 dòng: category · nó là gì · có đáng không (có chính kiến) · áp dụng vào đâu · việc nhỏ nhất nên làm tiếp. Trả lời thẳng câu người dùng hỏi; họ muốn bàn tiếp thì bàn.
 
-Rồi:
-- **Category** (mảng việc của Rio, khác `topic`): đọc bảng trong `$INS/categories.md`, chọn 1 hoặc nhiều slug. Không vừa cái nào → đề xuất category mới (slug + tên + mô tả 1 dòng), hỏi Rio; Rio đồng ý thì thêm dòng vào `categories.md` trong cùng commit. Chưa hỏi được (batch/không có Rio) → `khac`.
-- **Dedupe ngữ nghĩa**: `grep -ril "<2-3 keyword>" "$INS/notes" "$INS/_archive"` (chỉ xem `title`). Cùng ý tưởng nguồn khác → `duplicate_of: "[[...]]"`, nói Rio.
-- **Research nhẹ**: 3–5 web search — nguồn gốc (repo, tác giả, bài gốc), độ khả thi, thứ tương đương.
+### 5. Chốt note
+Khi người dùng nói "lưu"/"ok", hoặc cuối lượt trả lời nếu họ không phản đối: điền đủ template, `status: inbox`, đổi tên file thành `<id> <tên ngắn 2-4 từ>.md`, ghi kết luận trao đổi vào `## Ghi chú`. Commit + push `inspo: <id> <title>`.
 
-## 4. Trả lời Rio
-3–8 dòng: category · nó là gì · đáng không (có chính kiến) · áp dụng vào đâu cho Rio · next action nhỏ nhất. Trả lời thẳng câu Rio hỏi. Rio muốn bàn tiếp thì bàn.
-
-## 5. Chốt note
-Khi Rio nói "lưu"/"ok", hoặc cuối lượt trả lời nếu Rio không phản đối: điền đủ template, `status: inbox`, đổi tên file thành `<id> <tên ngắn 2-4 từ>.md`, ghi kết luận trao đổi vào `## Rio note`. Commit + push: `inspo: <id> <title>`.
-
-Git: `git -C /home/claude/claude-vault pull --rebase -q origin main` trước mỗi commit, sau đó `push origin main`. Bị từ chối → pull --rebase, push lại 1 lần.
+Git: `git -C <vault> pull --rebase -q origin HEAD` trước mỗi commit, rồi push. Bị từ chối → pull --rebase, push lại 1 lần.
 
 ## Template
 ```markdown
 ---
-id: INS-0003
+id: INS-20261112-2119-rio
 title: "<tiêu đề rõ nghĩa>"
-status: inbox            # raw khi mới lưu tạm
+status: inbox            # raw · inbox · later · done · dropped · archived
 kind: image|video|link
 type: skill|project|tool|design-pattern|idea|setup
 topic: ai-agent|personal-ai|claude-skill|video|dev|ios|design|other
-category: [video-editor]   # slug trong categories.md, được nhiều
+category: [khac]         # slug trong categories.md, được nhiều
 source: <url hoặc trống>
-author: <tác giả/nguồn>
-related: "[[...]]"       # project/skill của Rio thật sự liên quan, hoặc trống
+source_author: <tác giả của nguồn>
+captured_by: <người lưu>
+related: ""              # thứ trong "Hệ thống để so sánh" thật sự liên quan, hoặc trống
 effort: 15-phut|1-buoi|1-tuan
 tags: [..]
 captured: YYYY-MM-DD
 processed: YYYY-MM-DD
 review: <processed + 7 ngày>
-sha256: <file, nếu có>
-phash: <ảnh hoặc contact sheet, nếu có>
+sha256: <nếu có file>
+phash: <ảnh hoặc ảnh tóm tắt, nếu có>
 duration:                # giây, chỉ với video
 duplicate_of:
 ---
-![[INS-0003.jpeg|400]]   # video: ![[INS-0003.sheet.jpg|500]]; link: bỏ dòng này
+![[INS-20261112-2119-rio.jpeg|400]]   # video: ![[<id>.sheet.jpg|500]]; link: bỏ dòng này
 
-## Rio note
-Câu Rio gửi kèm + kết luận sau trao đổi.
+## Ghi chú
+Câu người dùng gửi kèm + kết luận sau trao đổi. Lệnh xong/bỏ/thêm vào ghi thêm dòng có ngày ở cuối mục này.
 
-## Summary
+## Tóm tắt
 2–3 câu: là gì, dùng khi nào.
 
-## Analysis
-Theo lăng kính ở bước 3 (bullet ngắn).
+## Phân tích
+Theo lăng kính (gạch đầu dòng ngắn).
 
-## Research
-- bullet có link
+## Nguồn
+- gạch đầu dòng có link
 
-## Next action
+## Việc tiếp theo
 - [ ] việc cụ thể, làm được
 ```
 
-## Quy tắc token
-- Mỗi tài liệu chỉ "nhìn" 1 lần (ảnh, contact sheet, hoặc 1 lần fetch). Sau đó chỉ dùng hash/frontmatter.
-- Không mở note cũ ngoài frontmatter. Không lưu nội dung inspiration vào memory của Claude — vault là nguồn sự thật.
-- Mỗi tài liệu một thread mới là tốt nhất. Nhiều tài liệu một lần → xử lý tuần tự, mỗi cái một commit.
+## Quy tắc tiết kiệm
+- Mỗi tài liệu chỉ "nhìn" 1 lần (ảnh, ảnh tóm tắt, hoặc 1 lần fetch). Sau đó chỉ dùng hash/frontmatter.
+- Không mở note cũ ngoài frontmatter; lệnh dùng script, không sửa note bằng tay.
+- Vault là nguồn sự thật; không lưu nội dung ý tưởng vào memory của Claude.
+- Nhiều tài liệu một lần → xử lý lần lượt, mỗi cái một commit.

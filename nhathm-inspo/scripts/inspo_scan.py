@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Hash + dedupe for Rio's Inspiration vault, so Claude never re-reads old material.
+"""Hash + dedupe for an Inspiration vault, so Claude never re-reads old material.
 
 Usage:
-  inspo_scan.py <Inspiration dir>                 # scan _inbox/ (images + videos)
-  inspo_scan.py <Inspiration dir> --file X        # one image or video
-  inspo_scan.py <Inspiration dir> --url URL       # one link
-  inspo_scan.py <Inspiration dir> --file X --url URL   # video/image with its post link
+  inspo_scan.py <Inspiration dir> [--by NAME]                 # scan _inbox/ (images + videos)
+  inspo_scan.py <Inspiration dir> --file X [--by NAME]        # one image or video
+  inspo_scan.py <Inspiration dir> --url URL [--by NAME]       # one link
+  inspo_scan.py <Inspiration dir> --file X --url URL          # video/image with its post link
+
+New ids: INS-YYYYMMDD-HHMM-<who> (local time from config.md `timezone`, default
+Asia/Saigon; <who> from --by or config.md `owner`). Unique when several people share
+a vault. Old INS-0001-style ids are still indexed for dedupe and never renamed.
 
 Video: extracts ~6 evenly spaced frames into a contact sheet (<file>.sheet.jpg)
 with ffmpeg; that sheet is what Claude looks at and what gets committed.
@@ -14,7 +18,11 @@ Prints JSON: kind, sha256, phash, url_norm, sheet, next free id, and the closest
 existing note (exact sha256, same normalised URL, or pHash Hamming <= 8).
 Reads only note frontmatter.
 """
-import sys, os, re, json, glob, hashlib, subprocess, tempfile
+import sys, os, re, json, glob, hashlib, subprocess, unicodedata, datetime
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 try:
     import imagehash
@@ -35,6 +43,13 @@ def norm_url(u):
     q = urlencode([(k, v) for k, v in parse_qsl(p.query) if not DROP_Q.match(k)])
     return urlunsplit(("https", host, p.path.rstrip("/"), q, ""))
 
+def _val(v):
+    v = v.strip()
+    if v.startswith('"'):
+        end = v.find('"', 1)
+        return v[1:end] if end > 0 else v.strip('"')
+    return v.split(" #", 1)[0].strip()
+
 def fm(path):
     with open(path, encoding="utf-8") as f:
         txt = f.read(4000)
@@ -44,20 +59,37 @@ def fm(path):
         for line in m.group(1).splitlines():
             if ":" in line:
                 k, v = line.split(":", 1)
-                out[k.strip()] = v.split("#", 1)[0].strip().strip('"')
+                out[k.strip()] = _val(v)
     return out
 
+def who_slug(name):
+    """'Hoàng Minh Nhật' -> 'hmn', 'Rio' -> 'rio'."""
+    t = unicodedata.normalize("NFKD", (name or "").replace("đ", "d").replace("Đ", "D"))
+    words = re.findall(r"[a-z0-9]+", "".join(c for c in t if not unicodedata.combining(c)).lower())
+    if not words:
+        return "x"
+    return words[0][:8] if len(words) == 1 else "".join(w[0] for w in words)[:8]
+
+def config(root):
+    p = f"{root}/config.md"
+    return fm(p) if os.path.exists(p) else {}
+
+def now_local(tz):
+    try:
+        return datetime.datetime.now(ZoneInfo(tz)) if ZoneInfo else datetime.datetime.utcnow()
+    except Exception:
+        return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=7)))
+
 def index(root):
-    idx, max_id = [], 0
+    idx, ids = [], set()
     for p in glob.glob(f"{root}/notes/*.md") + glob.glob(f"{root}/_archive/*.md"):
         d = fm(p)
-        m = re.match(r"INS-(\d+)", d.get("id", ""))
-        if m:
-            max_id = max(max_id, int(m.group(1)))
+        if d.get("id"):
+            ids.add(d["id"])
         idx.append({"note": os.path.relpath(p, root), "id": d.get("id"), "title": d.get("title"),
                     "status": d.get("status"), "sha256": d.get("sha256", ""),
                     "phash": d.get("phash", ""), "url": norm_url(d.get("source", ""))})
-    return idx, max_id
+    return idx, ids
 
 def sheet(video):
     out = os.path.splitext(video)[0] + ".sheet.jpg"
@@ -117,7 +149,10 @@ def describe(path, url=None):
 def main():
     a = sys.argv
     root = a[1].rstrip("/")
-    idx, max_id = index(root)
+    idx, ids = index(root)
+    cfg = config(root)
+    who = who_slug(a[a.index("--by") + 1] if "--by" in a else cfg.get("owner", ""))
+    base = f"INS-{now_local(cfg.get('timezone') or 'Asia/Saigon'):%Y%m%d-%H%M}-{who}"
     f = a[a.index("--file") + 1] if "--file" in a else None
     u = a[a.index("--url") + 1] if "--url" in a else None
     if f or u:
@@ -129,8 +164,12 @@ def main():
     for it in items:
         it["duplicate"] = match(it, idx + seen)
         if not it["duplicate"]:
-            max_id += 1
-            it["new_id"] = f"INS-{max_id:04d}"
+            nid, n = base, 1
+            while nid in ids:
+                n += 1
+                nid = f"{base}-{n}"
+            ids.add(nid)
+            it["new_id"] = nid
             seen.append({"note": "(this batch)", "id": it["new_id"], "title": it.get("file") or u,
                          "status": "new", "sha256": it.get("sha256", ""),
                          "phash": it.get("phash", ""), "url": it.get("url_norm", "")})

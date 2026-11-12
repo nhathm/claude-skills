@@ -10,13 +10,15 @@ properties:
     displayName: Type
   note.review:
     displayName: Review
+  note.captured_by:
+    displayName: Người lưu
 views:
   - type: table
     name: Đang mở
     filters:
       or:
         - note.status == "inbox"
-        - note.status == "to-try"
+        - note.status == "later"
     order:
       - file.name
       - category
@@ -33,7 +35,7 @@ views:
     filters:
       and:
         - note.review <= today()
-        - note.status != "archived"
+        - note.status == "inbox"
     order:
       - file.name
       - status
@@ -49,5 +51,6 @@ views:
       - file.name
       - category
       - status
+      - captured_by
       - type
       - captured
